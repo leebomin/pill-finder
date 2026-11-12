@@ -80,7 +80,7 @@ def find_evidence(
         evidence = ai.retrieve(item_seq, x.get('updateDe'), sections, question.strip())
     except ai.Unavailable:
         raise ToolError('검색 서버에 연결할 수 없습니다. get_official_info로 공식 원문 전체를 확인해 주세요.') from None
-    emergency = bool(re.search(r'삼켰|과다|과량|많이 먹|여러 알|한꺼번에|다 먹었|다 먹어 ?버|잘못 먹|통째', question))
+    emergency = bool(re.search(r'삼켰|과다|과량|많이 먹|여러 알|한꺼번에|다 먹었|다 먹어 ?버|잘못 먹|통째|(여러|몇|[2-9]|[1-9][0-9]+|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s?(개|알|정|번|통|병|봉지)\S{0,3}\s?(더\s?)?(먹었|삼켰|복용했|먹어\s?버)', question))
     return {'name': x['itemName'], 'evidence': [{'n': i, **e} for i, e in enumerate(evidence, 1)],
             **({'emergency': '응급 상황이면 즉시 119에 연락하세요.'} if emergency else {}), 'note': NOTE}
 

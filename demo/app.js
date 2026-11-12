@@ -435,7 +435,7 @@ function loadSummary() {
 function startAsk() {
   const q = s.question.trim(); if (!q) return;
   // 응급 표현 감지(항상): 답변을 기다리지 않고 119 안내를 먼저 보임
-  const emergency = /삼켰|과다|과량|많이 먹|여러 알|한꺼번에|다 먹었|다 먹어 ?버|잘못 먹|통째/.test(q);
+  const emergency = /삼켰|과다|과량|많이 먹|여러 알|한꺼번에|다 먹었|다 먹어 ?버|잘못 먹|통째|(여러|몇|[2-9]|[1-9][0-9]+|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s?(개|알|정|번|통|병|봉지)\S{0,3}\s?(더\s?)?(먹었|삼켰|복용했|먹어\s?버)/.test(q);
   Object.assign(s, { emergency, result: null, masked: '' });
   if (external()) maskAsk(q); // 외부(CLOVA·Claude)로 나갈 때만 가리고 사용자 확인을 받음
   else sendAsk();

@@ -1,8 +1,8 @@
 """알약 찾기 도우미. 실행: uvicorn app:app --host 0.0.0.0 --port 8000"""
+import fcntl
 import json
 import os
 import re
-import threading
 from datetime import date
 from pathlib import Path
 
@@ -230,17 +230,24 @@ def api_mask(body: Question):
         raise HTTPException(503, '개인정보 확인을 할 수 없어 질문을 보내지 않았습니다.')
 
 
-_counts, _counts_lock = {}, threading.Lock()
+LIMITS = DATA / 'limits.json'  # {"day": "2026-11-12", "ask": 3, "photo": 1}
 
 
 def count_today(name, limit, message):
-    """앱 전체 하루 횟수 제한(메모리, IP 저장 안 함). 서버를 다시 켜면 0부터 셈."""
-    with _counts_lock:
-        day, n = _counts.get(name, (None, 0))
-        n = n if day == date.today() else 0
-        if n >= limit:
+    """앱 전체 하루 횟수 제한(IP 저장 안 함). 파일에 세므로 서버를 다시 켜도 이어서 셈."""
+    with open(LIMITS, 'a+') as f:
+        fcntl.flock(f, fcntl.LOCK_EX)  # 같은 자료 폴더를 쓰는 서버(8000·8001)와 스레드가 함께 셈
+        f.seek(0)
+        try:
+            c = json.loads(f.read() or '{}')
+        except ValueError:  # 깨진 파일이면 오늘 0부터
+            c = {}
+        if c.get('day') != date.today().isoformat():
+            c = {'day': date.today().isoformat()}
+        if c.get(name, 0) >= limit:
             raise HTTPException(429, message)
-        _counts[name] = (date.today(), n + 1)
+        c[name] = c.get(name, 0) + 1
+        f.seek(0), f.truncate(), f.write(json.dumps(c))
 
 
 @app.post('/api/photo')

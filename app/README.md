@@ -4,6 +4,7 @@
 cd /opt/pill-finder
 /opt/rag-lab-b/.venv/bin/python refresh.py      # 낱알식별·e약은요 자료 전체 받기 (약 40초, 호출 62회)
 /opt/rag-lab-b/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+# 상시 실행은 systemd 서비스 pill-finder (deploy/pill-finder.service): systemctl status|restart pill-finder
 # 자가 검사
 for f in test_search ai clova photo; do /opt/rag-lab-b/.venv/bin/python $f.py; done
 ```
@@ -20,7 +21,7 @@ for f in test_search ai clova photo; do /opt/rag-lab-b/.venv/bin/python $f.py; d
 - 요약은 `data/summaries/<품목일련번호>.json`에 저장되고, e약은요 수정일이 바뀌면 새로 만든다.
 - 질문은 외부 전송 단계(CLOVA_TEXT·CLAUDE_REVIEW)가 켜져 있으면 Qwen이 먼저 가리고 사용자가 확인한 문장만 받는다. 질문·사진은 저장하지 않는다.
 - 질문 답변(`POST /api/ask`)은 SSE(`text/event-stream`)로 단계(`step`: search·write·check·review, start/done/skip/fail)와 마지막 `result`(또는 `error`)를 보낸다. 질문이 주소·기록에 남지 않게 EventSource(GET) 대신 POST 응답 본문을 화면에서 읽는다.
-- 하루 한도(앱 전체, 메모리): 질문 50회, 사진 읽기 50회. 서버를 다시 켜면 0부터 센다.
+- 하루 한도(앱 전체): 질문 50회, 사진 읽기 50회. `data/limits.json`에 세므로 서버를 다시 켜도 이어서 세고, 같은 폴더를 쓰는 서버(8000·8001)는 함께 센다.
 
 ## MCP
 - `pill_mcp.py`: 후보 찾기·이름 검색·공식 원문·근거 찾기 도구 4개(stdio, 읽기 전용, 외부 유료 호출 없음)

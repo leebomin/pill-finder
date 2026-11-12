@@ -24,4 +24,19 @@ assert search(rows, 'text', 'ZZZ')[0] == 0, '각인이 안 맞으면 후보 없�
 one = [prepare(0, {'ITEM_NAME': '한글자', 'PRINT_FRONT': 'Q'}), prepare(1, {'ITEM_NAME': '두글자', 'PRINT_FRONT': 'ZQ'})]
 assert names(search(one, 'text', 'ZZZQ')) == ['두글자'], '한 글자 각인은 입력 안에 들어 있어도 부분 일치로 보지 않음'
 assert names(search(one, 'text', 'Q')) == ['한글자', '두글자'], '입력이 각인의 일부면 부분 일치'
+# 하루 한도: 파일에 세고, 한도를 넘으면 429, 날짜가 바뀌면 0부터
+import json, tempfile
+from pathlib import Path
+from fastapi import HTTPException
+import app
+app.LIMITS = Path(tempfile.mkdtemp()) / 'limits.json'
+app.count_today('t', 2, 'x'); app.count_today('t', 2, 'x')
+try:
+    app.count_today('t', 2, 'x'); assert False, '한도를 넘으면 막아야 함'
+except HTTPException as e:
+    assert e.status_code == 429
+assert json.loads(app.LIMITS.read_text())['t'] == 2
+app.LIMITS.write_text(json.dumps({'day': '2000-01-01', 't': 9}))
+app.count_today('t', 2, 'x')
+assert json.loads(app.LIMITS.read_text())['t'] == 1, '날짜가 바뀌면 0부터'
 print('ok')

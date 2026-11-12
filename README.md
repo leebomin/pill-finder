@@ -5,11 +5,12 @@
 | 폴더 | 내용 |
 |---|---|
 | `app/` | 실제 앱 (FastAPI + 정적 화면, MCP 서버 `pill_mcp.py`). 실행·설정은 [`app/README.md`](app/README.md) |
+| `demo/` | 서버 없이 도는 데모 사이트 (실제 화면 + 녹화한 응답). GitHub Pages로 `…/demo/`에서 열림, [`demo/README.md`](demo/README.md) |
 | `prototype/` | 디자인 시안을 옮긴 정적 페이지 (예시 데이터) |
 | `deck/` | 발표 자료 PPTX와 만드는 스크립트 (`python-pptx` 필요) |
-| `measure/` | 완료 기준 측정 스크립트와 결과 (갱신 전후, 연습 질문 20개) |
+| `measure/` | 완료 기준 측정 스크립트와 결과 (갱신 전후, 연습 질문 3묶음) |
 | `deploy/` | systemd 서비스, 주 1회 자동 갱신 cron |
-| `docs/` | 기획서 `PROJECT.md`, 작업 정리 `pill-finder-handout.md`, 발표 요청서 |
+| `docs/` | 기획서 `PROJECT.md`, 완료 기준 점검표 `completion-checklist.md`, 작업 정리 `pill-finder-handout.md`, 발표 요청서 |
 
 ## 빠른 시작
 
