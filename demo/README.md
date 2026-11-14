@@ -1,5 +1,7 @@
 # 알약 찾기 도우미 — 데모
 
+https://leebomin.github.io/pill-finder/demo/
+
 서버 없이 브라우저만으로 동작하는 데모입니다. 화면 코드(`app.js`·`app.css`·`tokens.css`)는 실제 앱과 같은 파일이고, 서버 응답만 미리 녹화한 것(`demo-data.js`)을 `demo-api.js`가 돌려줍니다.
 
 ## 써 볼 수 있는 것
@@ -14,11 +16,6 @@
 ## 자료
 - 약 원문: 식품의약품안전처 「의약품개요정보(e약은요)」, 「의약품 낱알식별 정보」 (공공데이터포털). 화면에 자료 기준 시점이 함께 보입니다.
 - 요약 · 답변: CLOVA HCX-005가 쓰고 Claude Haiku 5.5가 검토한 실제 응답을 녹화한 것입니다. 의료 조언이 아니며, 복용 전 약사에게 확인하세요.
-
-## GitHub Pages로 올리기
-1. 이 폴더의 파일을 새 저장소 루트에 올림
-2. 저장소 Settings → Pages → Build and deployment → Source: Deploy from a branch, Branch: `main` / `/ (root)` → Save
-3. 1~2분 뒤 `https://<사용자 이름>.github.io/<저장소 이름>/`에서 열림
 
 ## 다시 녹화하기
 실제 앱 서버(8000번)가 켜진 서버에서 `python record.py` → `demo-data.js`가 새로 만들어집니다. 처음 만드는 요약과 질문 답변에는 CLOVA · Claude 비용이 조금 듭니다.
