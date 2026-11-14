@@ -32,6 +32,7 @@ for i, x in enumerate(Q, 1):
     r = {'n': i, 'q': q, '응급 기대': bool(emg), '응급 감지': bool(EMERGENCY.search(q))}
     # 13·6: 무료 모드(8001)에서 답변까지
     code, sec, res, raw = ask(8001, seq, q)
+    r['응급 감지'] = r['응급 감지'] or 'event: emergency' in raw  # 서버(Qwen)가 잡은 응급도 화면에 119가 뜸
     r['무료 시간(초)'] = sec
     if res is None:
         r['무료 결과'] = f'실패 {code}: {raw[-200:]}'

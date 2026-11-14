@@ -451,7 +451,7 @@ async function maskAsk(q) {
 }
 
 // SSE 읽기: 질문을 주소에 넣지 않으려고 EventSource(GET) 대신 POST 응답 본문을 읽음
-async function readEvents(r, onStep) {
+async function readEvents(r, onStep, onEmergency) {
   const reader = r.body.getReader(), dec = new TextDecoder();
   let buf = '', result = null;
   for (;;) {
@@ -463,6 +463,7 @@ async function readEvents(r, onStep) {
       const block = buf.slice(0, i); buf = buf.slice(i + 2);
       const ev = (block.match(/^event: (.*)$/m) || [])[1], data = JSON.parse((block.match(/^data: (.*)$/m) || [])[1] || '{}');
       if (ev === 'step') onStep(data);
+      else if (ev === 'emergency') onEmergency();
       else if (ev === 'result') result = data;
       else if (ev === 'error') throw new Error(data.detail);
     }
@@ -482,7 +483,8 @@ async function sendAsk() {
       const b = await r.json().catch(() => ({}));
       throw new Error(typeof b.detail === 'string' ? b.detail : '서버에 연결할 수 없습니다. 잠시 뒤 다시 시도해 주세요.');
     }
-    result = await readEvents(r, ({ step, status }) => { if (n === askSeq) setTab('ask', { steps: { ...s.steps, [step]: status } }); });
+    result = await readEvents(r, ({ step, status }) => { if (n === askSeq) setTab('ask', { steps: { ...s.steps, [step]: status } }); },
+      () => { if (n === askSeq) setTab('ask', { emergency: true }); });
   } catch (e) { result = { error: e.message, evidence: [] }; }
   if (n === askSeq) setTab('ask', { qa: 'done', result });
 }

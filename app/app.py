@@ -286,6 +286,8 @@ def api_ask(body: Ask):
 
     def run():
         step = lambda name, status: sse('step', {'step': name, 'status': status})
+        if ai.is_emergency(q):  # 답변보다 먼저: 화면의 표현 목록이 놓친 응급을 Qwen이 잡으면 119 안내 (완료 기준 18)
+            yield sse('emergency', {})
         yield step('search', 'start')
         try:
             evidence = ai.retrieve(body.seq, x.get('updateDe'), sections, q)
