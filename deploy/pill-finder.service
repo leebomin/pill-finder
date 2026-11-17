@@ -1,0 +1,13 @@
+[Unit]
+Description=Pill Finder (port 8000)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/opt/pill-finder
+ExecStart=/opt/rag-lab-b/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

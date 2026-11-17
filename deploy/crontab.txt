@@ -1,0 +1,2 @@
+# 알약 찾기 도우미: 매주 월 03:00 공공데이터 갱신 (끄기: /opt/pill-finder/.env에 AUTO_REFRESH=off, 완전히 끄려면 이 두 줄 삭제)
+0 3 * * 1 cd /opt/pill-finder && mkdir -p data/logs && /opt/rag-lab-b/.venv/bin/python refresh.py --scheduled >> data/logs/refresh-$(date +\%F).log 2>&1; find /opt/pill-finder/data/logs -name 'refresh-*.log' -mtime +30 -delete
