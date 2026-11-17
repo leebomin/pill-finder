@@ -39,4 +39,20 @@ assert json.loads(app.LIMITS.read_text())['t'] == 2
 app.LIMITS.write_text(json.dumps({'day': '2000-01-01', 't': 9}))
 app.count_today('t', 2, 'x')
 assert json.loads(app.LIMITS.read_text())['t'] == 1, '날짜가 바뀌면 0부터'
+# 질문: 근거 찾기·응급 판단은 가리기 전 질문, CLOVA·Claude에는 가린 질문만
+from fastapi.testclient import TestClient
+seen = {}
+app.official = lambda seq: ({'itemName': '약', 'updateDe': '1'}, [('주의', '고혈압 환자는 상의')])
+app.switches = lambda: {'clovaText': True, 'claudeReview': True}
+app.count_today = lambda *a: None
+app.write_with_fallback = lambda make: (make(None), 'm')
+app.ai.is_emergency = lambda q: seen.setdefault('emergency', q) and False
+app.ai.retrieve = lambda seq, u, sec, q: seen.setdefault('retrieve', q) and [{'title': '주의', 'body': '고혈압 환자는 상의'}]
+app.ai.answer = lambda name, q, ev, w: seen.setdefault('answer', q) and '상의하라고 적혀 있습니다 [1].'
+app.ai.review = lambda name, q, ev, t: seen.setdefault('review', q) and {}
+c = TestClient(app.app)
+assert c.post('/api/ask', json={'seq': '1', 'question': '고혈압인데 먹어도 되나요'}).status_code == 400, '켬이면 가리지 않은 질문 거부'
+c.post('/api/ask', json={'seq': '1', 'question': '[가림]인데 먹어도 되나요', 'original': '고혈압인데 먹어도 되나요', 'masked': True})
+assert seen == {'emergency': '고혈압인데 먹어도 되나요', 'retrieve': '고혈압인데 먹어도 되나요',
+                'answer': '[가림]인데 먹어도 되나요', 'review': '[가림]인데 먹어도 되나요'}, seen
 print('ok')

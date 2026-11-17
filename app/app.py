@@ -219,6 +219,7 @@ class Question(BaseModel):
 class Ask(Question):
     seq: str = Field(max_length=20)
     masked: bool = False  # 사용자가 가린 문장을 확인하고 보냈는지
+    original: str | None = Field(None, max_length=300)  # 가리기 전 질문: 근거 찾기·응급 판단(수업 서버)에만 쓰고 CLOVA·Claude에는 안 보냄
 
 
 @app.post('/api/mask')
@@ -281,16 +282,17 @@ def api_ask(body: Ask):
         # 외부로 나가는 단계가 켜져 있으면 가리기·확인을 거친 질문만 받음 (완료 기준 5)
         raise HTTPException(400, '개인정보를 가린 질문만 보낼 수 있습니다. 화면을 새로 고친 뒤 다시 질문해 주세요.')
     count_today('ask', ASK_PER_DAY, '오늘 이용 한도에 도달했습니다. 내일 다시 시도해 주세요.')
-    q = body.question.strip()
+    q = body.question.strip()  # CLOVA·Claude로 가는 질문 (켬이면 가린 문장)
+    local_q = (body.original or '').strip() or q  # 가린 병명 등도 근거 찾기에는 써야 맞는 문단이 나옴
     later = ['check'] + (['review'] if sw['claudeReview'] else [])
 
     def run():
         step = lambda name, status: sse('step', {'step': name, 'status': status})
-        if ai.is_emergency(q):  # 답변보다 먼저: 화면의 표현 목록이 놓친 응급을 Qwen이 잡으면 119 안내 (완료 기준 18)
+        if ai.is_emergency(local_q):  # 답변보다 먼저: 화면의 표현 목록이 놓친 응급을 Qwen이 잡으면 119 안내 (완료 기준 18)
             yield sse('emergency', {})
         yield step('search', 'start')
         try:
-            evidence = ai.retrieve(body.seq, x.get('updateDe'), sections, q)
+            evidence = ai.retrieve(body.seq, x.get('updateDe'), sections, local_q)
         except ai.Unavailable:
             yield step('search', 'fail')
             yield sse('error', {'detail': '검색 서버에 연결할 수 없습니다. 원문 탭에서 공식 원문 전체를 확인해 주세요.'})
@@ -322,4 +324,12 @@ def api_ask(body: Ask):
     return StreamingResponse(run(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})
 
 
-app.mount('/', StaticFiles(directory=ROOT / 'static', html=True), name='static')
+class FreshStatic(StaticFiles):
+    """화면 파일을 고치면 브라우저가 바로 새 파일을 받게 함 (안 바뀌었으면 ETag로 304). 없으면 CSS만 옛것이 남아 화면이 어긋남"""
+    async def get_response(self, path, scope):
+        r = await super().get_response(path, scope)
+        r.headers['Cache-Control'] = 'no-cache'
+        return r
+
+
+app.mount('/', FreshStatic(directory=ROOT / 'static', html=True), name='static')

@@ -119,8 +119,8 @@ function findScreen(tab) {
 
 function manualTab() {
   return `<div class="col" style="gap:8px">
-    ${s.filledFromPhoto ? '<div class="note">사진에서 읽은 값입니다. 알약과 비교해 틀린 곳을 고쳐 주세요.</div>' : ''}
-    <div class="row-between"><h2 class="sec-h">각인</h2><button type="button" class="link-btn" data-act="fillSample">예시 값 채우기</button></div>
+    ${s.filledFromPhoto ? '<div class="note">사진에서 읽은 값입니다.<br>알약과 비교해 틀린 곳을 고쳐 주세요.</div>' : ''}
+    <div class="row-between"><h2 class="sec-h">각인</h2><span class="row" style="gap:12px"><button type="button" class="link-btn" data-act="fillSample">예시 값 채우기</button><button type="button" class="link-btn" data-act="again">모두 지우기</button></span></div>
     <div class="box">
       <div class="row" style="gap:8px">${[['text', '글자 있음'], ['none', '각인 없음'], ['mark', '마크(로고)']].map(([v, l]) => opt('imprint', v, s.imprintMode === v, l, 'grow')).join('')}</div>
       ${s.imprintMode === 'text' ? `<div class="imprint-grid">
@@ -144,6 +144,7 @@ function manualTab() {
     <div class="box">
       <div class="grid4" style="gap:8px">${SHAPES.map(([l, w, h, r]) => opt('shape', l, s.shape === l, `<span class="shape-ic" style="width:${w}px;height:${h}px;border-radius:${r}"></span>${l}`, 'shape')).join('')}</div>
       <div class="row" style="gap:8px"><span class="lbl grow">캡슐형인가요?</span>${[['y', '예'], ['n', '아니요']].map(([v, l]) => opt('capsule', v, s.capsule === v, l, 'cap')).join('')}</div>
+      <div class="muted12" style="text-align:center;margin-top:-4px">말랑하고 반짝이는 연질캡슐도 캡슐입니다.</div>
     </div>
   </div>`;
 }
@@ -151,8 +152,8 @@ function manualTab() {
 function slot(k, label) {
   const url = s.photos[k] && s.photos[k].url;
   if (!url) return `<label class="slot"><input type="file" accept="image/*" class="sr-only" data-photo="${k}" aria-label="${label} 사진 올리기">${ICON_CAM}<span style="font-weight:600;color:var(--cal-ink)">${label} 사진</span><span style="font-size:12px">눌러서 올리기</span></label>`;
-  return `<div class="slot added" data-slot="${k}"><img src="${url}" alt="${label}면 사진 미리보기"><span class="crop" data-crop="${k}" tabindex="0" role="group"
-    aria-label="${label} 사진 자르기 영역. 끌어서 옮기고 오른쪽 아래 점으로 크기를 바꿉니다. 화살표 키로 이동, Shift와 화살표 키로 크기 조절" style="${cropStyle(s.photos[k].crop)}"><span class="crop-handle" data-handle aria-hidden="true"></span></span><span class="slot-tag">자르기 영역</span><button type="button" class="slot-clear" data-act="clearPhoto" data-v="${k}" aria-label="${label} 사진 지우기">지우기</button></div>`;
+  return `<div class="col" style="gap:0"><div class="slot added" data-slot="${k}"><img src="${url}" alt="${label}면 사진 미리보기"><span class="crop" data-crop="${k}" tabindex="0" role="group"
+    aria-label="${label} 사진 자르기 영역. 끌어서 옮기고 오른쪽 아래 점으로 크기를 바꿉니다. 화살표 키로 이동, Shift와 화살표 키로 크기 조절" style="${cropStyle(s.photos[k].crop)}"><span class="crop-handle" data-handle aria-hidden="true"></span></span></div><div class="row-between" style="align-items:center"><span class="slot-tag">자르기 영역</span><button type="button" class="slot-clear" data-act="clearPhoto" data-v="${k}" aria-label="${label} 사진 지우기">지우기</button></div></div>`;
 }
 
 function photoTab() {
@@ -351,6 +352,13 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const moveCrop = (c, dx, dy, resize) => resize
   ? { ...c, w: clamp(c.w + dx, CROP_MIN, 1 - c.x), h: clamp(c.h + dy, CROP_MIN, 1 - c.y) }
   : { ...c, x: clamp(c.x + dx, 0, 1 - c.w), y: clamp(c.y + dy, 0, 1 - c.h) };
+// 상자(칸 기준 비율) → 원본 사진 좌표. 사진은 object-fit: contain이라 상자가 여백에 걸친 부분은 빼고 자름
+const cropRect = (c, w, h, iw, ih) => {
+  const scale = Math.min(w / iw, h / ih), ox = (w - iw * scale) / 2, oy = (h - ih * scale) / 2;
+  const x0 = Math.max(0, (c.x * w - ox) / scale), y0 = Math.max(0, (c.y * h - oy) / scale);
+  const x1 = Math.min(iw, ((c.x + c.w) * w - ox) / scale), y1 = Math.min(ih, ((c.y + c.h) * h - oy) / scale);
+  return [x0, y0, x1 - x0, y1 - y0, scale];
+};
 const cropStyle = c => `left:${c.x * 100}%;top:${c.y * 100}%;width:${c.w * 100}%;height:${c.h * 100}%`;
 // 끄는 동안에는 화면 전체를 다시 그리지 않고 상자 위치만 바꿈 (다시 그리면 끌기가 끊김)
 const placeCrop = (k, el) => { el.style.cssText = cropStyle(s.photos[k].crop); };
@@ -384,10 +392,9 @@ async function cropped(k) {
   const el = document.querySelector(`[data-slot="${k}"]`);
   if (!el) throw new Error('사진을 다시 올려 주세요.');
   const img = await createImageBitmap(s.photos[k].file, { imageOrientation: 'from-image' });
-  const w = el.clientWidth, h = el.clientHeight, scale = Math.max(w / img.width, h / img.height); // object-fit: cover와 같은 배율
-  const c0 = s.photos[k].crop;
-  const sx = (c0.x * w + (img.width * scale - w) / 2) / scale, sy = (c0.y * h + (img.height * scale - h) / 2) / scale;
-  const sw = c0.w * w / scale, sh = c0.h * h / scale, f = Math.min(1, 2048 / Math.max(sw, sh));
+  const [sx, sy, sw, sh, scale] = cropRect(s.photos[k].crop, el.clientWidth, el.clientHeight, img.width, img.height);
+  if (sw * scale < 10 || sh * scale < 10) throw new Error('자르기 상자를 사진 위로 옮겨 주세요.'); // 상자가 거의 여백에만 있음
+  const f = Math.min(1, 2048 / Math.max(sw, sh));
   const c = document.createElement('canvas');
   c.width = Math.round(sw * f); c.height = Math.round(sh * f);
   c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
@@ -436,7 +443,7 @@ function startAsk() {
   const q = s.question.trim(); if (!q) return;
   // 응급 표현 감지(항상): 답변을 기다리지 않고 119 안내를 먼저 보임
   const emergency = /삼켰|과다|과량|많이 먹|여러 알|한꺼번에|다 먹었|다 먹어 ?버|잘못 먹|통째|(여러|몇|[2-9]|[1-9][0-9]+|두|세|네|다섯|여섯|일곱|여덟|아홉|열)\s?(개|알|정|번|통|병|봉지)\S{0,3}\s?(더\s?)?(먹었|삼켰|복용했|먹어\s?버)/.test(q);
-  Object.assign(s, { emergency, result: null, masked: '' });
+  Object.assign(s, { emergency, result: null, masked: '', asked: q });
   if (external()) maskAsk(q); // 외부(CLOVA·Claude)로 나갈 때만 가리고 사용자 확인을 받음
   else sendAsk();
 }
@@ -478,7 +485,7 @@ async function sendAsk() {
   let result;
   try {
     const r = await fetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(external() ? { seq: d.seq, question: s.masked, masked: true } : { seq: d.seq, question: s.question.trim() }) });
+      body: JSON.stringify(external() ? { seq: d.seq, question: s.masked, original: s.asked, masked: true } : { seq: d.seq, question: s.question.trim() }) });
     if (!r.ok) {
       const b = await r.json().catch(() => ({}));
       throw new Error(typeof b.detail === 'string' ? b.detail : '서버에 연결할 수 없습니다. 잠시 뒤 다시 시도해 주세요.');
